@@ -23,7 +23,8 @@ You can optionally use this in a "bridge" mode. This will allow you to pull (clo
 * rsync (downloads from remote certbot server)
 
 ## Additional Notes
-* This was made to be as simple, yet thorough as possible.
+* This was made to be as simple as possible, yet still robust.
+* Tested on UCK-G2-PLUS running latest public firmware *(UCKP.apq8053.v1.0.9.92d728e.190709.1609)* and controller *(5.10.25-11682-1)*
 * Support for SSH keys to connect to the CloudKey will depend on if the keys get wiped during a firmware update. If this is the case, password authentication will be added instead, and thus remove all dependencies on the CloudKey.
 * This can be run on demand at any time, or by cron job (recommended). You will need to run this after firmware updates to reinstall the SSL certificate, or let the cron get to it when the time comes.
 
