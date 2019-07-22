@@ -8,11 +8,12 @@ This is simply a file checking/transfer tool.
 * scp (copies certificate files to CloudKey)
 
 # INSTALLATION
+1. As always, create a backup of your CloudKey. I am not responsible if you mess it up.
 1. Generate an SSH key pair for your server/CloudKey
 1. Place the public key on your CloudKey
 1. Add an entry to your server's ~/.ssh/config file
-1. Place the unifi_ssl_cron.sh file on your server
-1. Edit the variables at the top to suit your needs
+1. Place the unifi_ssl_cron.sh file on your server (wherever you'd like)
+1. Edit the variables at the top of the script to suit your needs
 1. Run the script to verify operation
 1. Add a cron entry to run unifi_ssl_cron.sh after certbot (ex. 5 minutes after)
 
@@ -22,5 +23,8 @@ You can optionally use this in a "bridge" mode. This will allow you to pull (clo
 * rsync (downloads from remote certbot server)
 
 ## Additional Notes
-* Support for SSH keys to connect to the CloudKey will depend on if the keys get wiped during a firmware update. If this is the case, password authentication will be used instead, and remove all dependencies on the CloudKey.
+* This was made to be as simple, yet thorough as possible.
+* Support for SSH keys to connect to the CloudKey will depend on if the keys get wiped during a firmware update. If this is the case, password authentication will be added instead, and thus remove all dependencies on the CloudKey.
 * This can be run on demand at any time, or by cron job (recommended). You will need to run this after firmware updates to reinstall the SSL certificate, or let the cron get to it when the time comes.
+
+**The script provided is not affiliated with Ubiquiti, or any of its staff. Provided "as-is" without liability.**
