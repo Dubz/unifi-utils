@@ -1,7 +1,9 @@
 # uck-letsencrypt-certbot
 This will allow a linux server (ex. Raspberry Pi) to easily push LetsEncrypt SSL certs to a Unifi CloudKey.
+This is simply a file checking/transfer tool.
 
 # Requirements
+* certbot running for your domain (this does not run certbot, it copes the files needed)
 * openssh-client (verifying certificate integrity)
 * scp (copies certificate files to CloudKey)
 
@@ -21,3 +23,4 @@ You can optionally use this in a "bridge" mode. This will allow you to pull (clo
 
 ## Additional Notes
 * Support for SSH keys to connect to the CloudKey will depend on if the keys get wiped during a firmware update. If this is the case, password authentication will be used instead, and remove all dependencies on the CloudKey.
+* This can be run on demand at any time, or by cron job (recommended). You will need to run this after firmware updates to reinstall the SSL certificate, or let the cron get to it when the time comes.
