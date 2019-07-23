@@ -23,6 +23,7 @@
 # Enter your controller information here
 CONTROLLER_HOST=unifi.example.com
 CONTROLLER_USER=ubnt
+CONTROLLER_HAS_PROTECT=true
 
 # Local path to LetsEncrypt files
 CERTBOT_LOCAL_DIR_WORK=~/ssl/letsencrypt/lib
@@ -182,10 +183,17 @@ echo -n "Restarting UniFi Controller to apply new Let's Encrypt SSL certificate.
 ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "service ${UNIFI_SERVICE} start"
 echo "done!"
 
-# Reload nginx on the Cloud Key
+# Reload nginx on the CloudKey
 echo -n "Reloading nginx..."
-ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} 'nginx -s reload'
+ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} 'service nginx reload'
 echo "done!"
+
+if [ "${CONTROLLER_HAS_PROTECT}" = "true" ]; then
+    # Reload Protect On the CloudKey
+    echo -n "Reloading UniFi Protect..."
+    ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} 'service unifi-protect reload'
+    echo "done!"
+fi
 
 
 echo -n "Cleaning up CloudKey..."
