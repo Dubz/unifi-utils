@@ -172,8 +172,7 @@ ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "keytool -importkeystore \
     -destkeystore ${KEYSTORE} \
     -deststorepass ${PASSWORD} \
     -destkeypass ${PASSWORD} \
-    -alias ${ALIAS} \
-    -trustcacerts"
+    -alias ${ALIAS}"
 echo "done!"
 
 
