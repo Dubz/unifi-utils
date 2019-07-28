@@ -81,8 +81,8 @@ RADIUS_USER=ubnt
 RADIUS_SERVICE=freeradius
 
 # Uncomment following two lines for USG (default)
-# RADIUS_KEY=/etc/ssl/private/ssl-cert-snakeoil.key
-# RADIUS_CERT=/etc/ssl/certs/ssl-cert-snakeoil.pem
+RADIUS_KEY=/etc/ssl/private/ssl-cert-snakeoil.key
+RADIUS_CERT=/etc/ssl/certs/ssl-cert-snakeoil.pem
 RADIUS_PEM=/etc/lighttpd/server.pem
 
 ###########################
