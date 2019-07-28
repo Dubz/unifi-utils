@@ -1,0 +1,96 @@
+#!/bin/sh
+
+# unifi-utils
+# config-default
+# Utilities used to automate tasks with UniFi setups
+# 
+# This config file is your control point for managing your utility system
+# Simply copy this file to "./config" and edit as desired
+
+
+###########################
+####  BEGIN: CERTBOT   ####
+###########################
+
+# Local path to Let's Encrypt files
+CERTBOT_LOCAL_DIR_WORK=~/ssl/letsencrypt/lib
+CERTBOT_LOCAL_DIR_LOGS=~/ssl/letsencrypt/log
+CERTBOT_LOCAL_DIR_CONFIG=~/ssl/letsencrypt/ssl
+# Local path for unifi-utils to store data
+CERTBOT_LOCAL_DIR_CACHE=~/ssl/letsencrypt/cache
+
+# Optional
+# If using a remote server to obtain certificates, and not done directly on this machine
+CERTBOT_USE_EXTERNAL=false
+CERTBOT_EXTERNAL_HOST=api.example.com
+CERTBOT_EXTERNAL_USER=certbot-example_com
+CERTBOT_EXTERNAL_DIR_WORK=/var/lib/letsencrypt
+CERTBOT_EXTERNAL_DIR_LOGS=/var/log/letsencrypt
+CERTBOT_EXTERNAL_DIR_CONFIG=/etc/letsencrypt
+
+###########################
+####   END: CERTBOT    ####
+###########################
+
+
+###########################
+#### BEGIN: CONTROLLER ####
+###########################
+
+# Enter your controller information here
+CERTBOT_RUN_CONTROLLER=false
+CONTROLLER_HOST=unifi.example.com
+CONTROLLER_USER=ubnt
+CONTROLLER_PASS=ubnt
+CONTROLLER_HAS_PROTECT=true
+
+# Uncomment following three lines for CloudKey (default)
+CONTROLLER_UNIFI_DIR=/var/lib/unifi
+CONTROLLER_JAVA_DIR=/usr/lib/unifi
+CONTROLLER_KEYSTORE=${CONTROLLER_JAVA_DIR}/data/keystore
+
+# Uncomment following three lines for Fedora/RedHat/CentOS
+#CONTROLLER_UNIFI_DIR=/opt/UniFi
+#CONTROLLER_JAVA_DIR=${CONTROLLER_UNIFI_DIR}
+#CONTROLLER_KEYSTORE=${CONTROLLER_UNIFI_DIR}/data/keystore
+
+# Uncomment following three lines for Debian/Ubuntu
+#CONTROLLER_UNIFI_DIR=/var/lib/unifi
+#CONTROLLER_JAVA_DIR=/usr/lib/unifi
+#CONTROLLER_KEYSTORE=${CONTROLLER_UNIFI_DIR}/keystore
+
+# Configuration options you probably shouldn't change
+CONTROLLER_KEYSTORE_ALIAS=unifi
+CONTROLLER_KEYSTORE_PASSWORD=aircontrolenterprise
+CONTROLLER_SERVICE_UNIFI_NETWORK=unifi
+CONTROLLER_SERVICE_UNIFI_PROTECT=unifi-protect
+
+###########################
+####  END: CONTROLLER  ####
+###########################
+
+
+###########################
+####   BEGIN: RADIUS   ####
+###########################
+
+CERTBOT_RUN_RADIUS=false
+RADIUS_HOST=usg.example.com
+RADIUS_USER=ubnt
+# Password is not used at all. SSH keys are used instead
+RADIUS_SERVICE=freeradius
+
+# Uncomment following two lines for USG (default)
+# RADIUS_KEY=/etc/ssl/private/ssl-cert-snakeoil.key
+# RADIUS_CERT=/etc/ssl/certs/ssl-cert-snakeoil.pem
+RADIUS_PEM=/etc/lighttpd/server.pem
+
+###########################
+####    END: RADIUS    ####
+###########################
+
+
+# Script use only
+# Skip these!
+CONFIG_LOADED=true
+BRIDGE_SYNCED=false
