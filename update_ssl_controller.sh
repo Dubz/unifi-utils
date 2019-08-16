@@ -44,7 +44,7 @@ fi
 
 # Clone from external server to local server (if used)
 if [ "${CERTBOT_USE_EXTERNAL}" == "true" ] && [ "${BRIDGE_SYNCED}" != "true" ]; then
-    source update_ssl_bridge.sh
+    source get_ssl_bridge.sh
 fi
 
 
