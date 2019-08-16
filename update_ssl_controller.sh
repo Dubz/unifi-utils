@@ -135,10 +135,10 @@ sshpass -p "${CONTROLLER_PASS}" scp -q "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_
 echo "done!"
 
 
-# Stop service...
-echo -n "Stopping UniFi Controller..."
-sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "service ${CONTROLLER_SERVICE_UNIFI_NETWORK} stop"
-echo "done!"
+# Stop service... (not needed! reload later)
+# echo -n "Stopping UniFi Controller..."
+# sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "service ${CONTROLLER_SERVICE_UNIFI_NETWORK} stop"
+# echo "done!"
 
 
 # Load keystore changes
@@ -158,10 +158,13 @@ echo "done!"
 
 
 # Reload...
-# Start service back up
-echo -n "Restarting UniFi Controller to apply new Let's Encrypt SSL certificate..."
-sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "service ${CONTROLLER_SERVICE_UNIFI_NETWORK} start"
+echo -n "Reloading UniFi Controller to apply new Let's Encrypt SSL certificate..."
+sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "service ${CONTROLLER_SERVICE_UNIFI_NETWORK} reload"
 echo "done!"
+# Start service back up (not needed!)
+# echo -n "Restarting UniFi Controller to apply new Let's Encrypt SSL certificate..."
+# sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "service ${CONTROLLER_SERVICE_UNIFI_NETWORK} start"
+# echo "done!"
 
 # Reload nginx on the CloudKey
 echo -n "Reloading nginx..."
