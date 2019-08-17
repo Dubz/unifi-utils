@@ -115,8 +115,8 @@ echo "done!"
 
 # Backup original keystore on CK
 echo -n "Creating backup of keystore on controller..."
-# sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "if [ -s \"${KEYSTORE}.orig\" ]; then cp -n \"${KEYSTORE}\" \"${KEYSTORE}.orig\"; else cp -n \"${KEYSTORE}\" \"${KEYSTORE}.bak\"; fi"
-sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} 'if [ -s "'${KEYSTORE}'.orig" ]; then echo -n "Backup of original keystore exists! Creating non-destructive backup as keystore.bak..."; sudo cp -n "'${KEYSTORE}'" "'${KEYSTORE}'.bak"; else echo -n "no original keystore backup found. Creating backup as keystore.orig..."; sudo cp -n "'${KEYSTORE}'" "'${KEYSTORE}'.orig"; fi'
+# sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "if [ -s \"${CONTROLLER_KEYSTORE}.orig\" ]; then cp -n \"${CONTROLLER_KEYSTORE}\" \"${CONTROLLER_KEYSTORE}.orig\"; else cp -n \"${CONTROLLER_KEYSTORE}\" \"${CONTROLLER_KEYSTORE}.bak\"; fi"
+sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} 'if [ -s "'${CONTROLLER_KEYSTORE}'.orig" ]; then echo -n "Backup of original keystore exists! Creating non-destructive backup as keystore.bak..."; sudo cp -n "'${CONTROLLER_KEYSTORE}'" "'${CONTROLLER_KEYSTORE}'.bak"; else echo -n "no original keystore backup found. Creating backup as keystore.orig..."; sudo cp -n "'${CONTROLLER_KEYSTORE}'" "'${CONTROLLER_KEYSTORE}'.orig"; fi'
 echo "done!"
 
 # Backup original keys on CK
