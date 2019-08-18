@@ -11,7 +11,6 @@ A collection of utilities to help automate tasks for Ubiquiti's UniFi products.
   * This will only take action if the certs installed are not matching
 
 ## update_ssl_controller.sh
-LATEST VERSION UNTESTED
 This will upload and install the SSL cert to your UniFi controller
 
 ## update_ssl_radius.sh
@@ -66,8 +65,13 @@ You can optionally use this in a "bridge" mode. This will allow you to pull (clo
 * Tested on UCK-G2-PLUS running latest public firmware *(UCKP.apq8053.v1.0.9.92d728e.190709.1609)* and controller *(5.10.25-11682-1)*
 * Tested on USG-PRO-4 running latest public furmware *(4.4.41.5193714)*
 * Should also work on UC-CK, UCK-G2, and USG
-* NOT tested on third party systems running SDN (ex. debian)
+* Compatibility with UDM and UDM-Pro is unknown at this time
+* NOT tested on third party systems running SDN (ex. debian, docker, Windows Server, etc.)
   * These probably won't really benefit from this, since there aren't firmware updates that wipe other software, like certbot. May change in the future
 * Any of these scripts can be run on demand at any time, or by cron job (recommended).
+
+#### Known issues
+* RADIUS cert installs, but still marked untrusted. If you have a solution to this, please open an issue/PR, or DM me.
+* Protect did not seem to load it back up. Might've been situational, or may need a full restart to load it.
 
 **The script provided is not affiliated with Ubiquiti, or any of its staff. Provided "as-is" without liability.**
