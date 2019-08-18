@@ -7,7 +7,7 @@ A collection of utilities to help automate tasks for Ubiquiti's UniFi products.
 
 ## update_ssl.sh
 * This will run all update_ssl\*.sh scripts
-* Recommended cron run: 5 minutes after certbot runs, on every hour (or your own preference)
+* Recommended cron run: 5 minutes after certbot runs (usually every 12 hours)
   * This will only take action if the certs installed are not matching
 
 ## update_ssl_controller.sh
@@ -39,8 +39,8 @@ This includes SSH keys and the config file (which contains the password to your 
   1. Generate an SSH key for your external server
   1. Add the public key to the external server
   1. Add entries to ~/.ssh/config for your external server
-1. Run cron.sh to verify operation
-1. Add a cron entry to run cron.sh as often as you'd like (it only makes changes if needed, recommended 5 minutes after certbot runs)
+1. Run update_ssl_controller.sh to verify operation
+1. Add a cron entry to run update_ssl.sh as often as you'd like (it only makes changes if needed, recommended 5 minutes after certbot runs)
 
 ### INSTALLATION (LetsEncrypt - RADIUS - Linux/USG)
 1. Edit the "./config" file to suit your setup
@@ -48,8 +48,8 @@ This includes SSH keys and the config file (which contains the password to your 
 1. Generate an SSH key for your devices (if using USG, the type must be RSA. Complain to Ubiquiti if you have issues with this. It's their limitation, not mine)
   1. If using USG, add the public key to your SDN (Settings > Site > Device Authentication)
   1. Add entry to ~/.ssh/config
-1. Run cron.sh to verify operation
-1. Add a cron entry to run cron.sh as often as you'd like (it only makes changes if needed, recommended 5 minutes after certbot runs)
+1. Run update_ssl_radius.sh to verify operation
+1. Add a cron entry to run update_ssl.sh as often as you'd like (it only makes changes if needed, recommended 5 minutes after certbot runs)
 
 ### INSTALLATION (RADIUS - Other)
 * There is currently no support for other RADIUS servers at this time. Please submit a PR if you would like to optionally add support for one
@@ -68,6 +68,6 @@ You can optionally use this in a "bridge" mode. This will allow you to pull (clo
 * Should also work on UC-CK, UCK-G2, and USG
 * NOT tested on third party systems running SDN (ex. debian)
   * These probably won't really benefit from this, since there aren't firmware updates that wipe other software, like certbot. May change in the future
-* Any of these scripts can be run on demand at any time, or by cron job (recommended). You will need to run this after firmware updates to reinstall the SSL certificate, or let the cron get to it when the time comes.
+* Any of these scripts can be run on demand at any time, or by cron job (recommended).
 
 **The script provided is not affiliated with Ubiquiti, or any of its staff. Provided "as-is" without liability.**
