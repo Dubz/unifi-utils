@@ -193,7 +193,7 @@ echo "done!"
 echo -n "Importing SSL certificate into UniFi keystore..."
 if [ "${CONTROLLER_LOCAL}" == "true" ]; then
     keytool -importkeystore \
-        -srckeystore \"${CONTROLLER_JAVA_DIR}/data/fullchain.p12\" \
+        -srckeystore "${CONTROLLER_JAVA_DIR}/data/fullchain.p12" \
         -srcstoretype PKCS12 \
         -srcstorepass ${CONTROLLER_KEYSTORE_PASSWORD} \
         -destkeystore ${CONTROLLER_KEYSTORE} \
