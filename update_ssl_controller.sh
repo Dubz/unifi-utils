@@ -84,10 +84,15 @@ else
     # Did the keys change? If not, no sense in continuing...
     if [ "${sha512_privkey}" == "${sha512_last}" ]; then
         # Did it change there? If no, no sense in continuing...
-        if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-            sha512_controller=$(openssl rsa -noout -modulus -in "/etc/ssl/private/cloudkey.key" | openssl sha512)
+        if [ "${CONTROLLER_IS_CK}" == "true" ]; then
+            if [ "${CONTROLLER_LOCAL}" == "true" ]; then
+                sha512_controller=$(openssl rsa -noout -modulus -in "/etc/ssl/private/cloudkey.key" | openssl sha512)
+            else
+                sha512_controller=$(sshpass -p "${CONTROLLER_PASS}" ssh -o LogLevel=error ${CONTROLLER_USER}@${CONTROLLER_HOST} "openssl rsa -noout -modulus -in \"/etc/ssl/private/cloudkey.key\" | openssl sha512")
+            fi
         else
-            sha512_controller=$(sshpass -p "${CONTROLLER_PASS}" ssh -o LogLevel=error ${CONTROLLER_USER}@${CONTROLLER_HOST} "openssl rsa -noout -modulus -in \"/etc/ssl/private/cloudkey.key\" | openssl sha512")
+            echo "Keys did not change, stopping!"
+            exit 0
         fi
         if [ "${sha512_privkey}" != "${sha512_controller}" ]; then
             echo "Key is not on controller, installer will continue!"
@@ -120,12 +125,12 @@ echo "done!"
 # Backup original keystore on CK
 echo -n "Creating backup of keystore on controller..."
 if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-    if [ -s "'${CONTROLLER_KEYSTORE}'.orig" ]; then
+    if [ -s "${CONTROLLER_KEYSTORE}.orig" ]; then
         echo -n "Backup of original keystore exists! Creating non-destructive backup as keystore.bak...";
-        sudo cp -n "'${CONTROLLER_KEYSTORE}'" "'${CONTROLLER_KEYSTORE}'.bak";
+        sudo cp -n "${CONTROLLER_KEYSTORE}" "${CONTROLLER_KEYSTORE}.bak";
     else
         echo -n "no original keystore backup found. Creating backup as keystore.orig...";
-        sudo cp -n "'${CONTROLLER_KEYSTORE}'" "'${CONTROLLER_KEYSTORE}'.orig";
+        sudo cp -n "${CONTROLLER_KEYSTORE}" "${CONTROLLER_KEYSTORE}.orig";
     fi
 else
     # sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "if [ -s \"${CONTROLLER_KEYSTORE}.orig\" ]; then cp -n \"${CONTROLLER_KEYSTORE}\" \"${CONTROLLER_KEYSTORE}.orig\"; else cp -n \"${CONTROLLER_KEYSTORE}\" \"${CONTROLLER_KEYSTORE}.bak\"; fi"
