@@ -16,8 +16,14 @@
 CERTBOT_LOCAL_DIR_WORK=~/ssl/letsencrypt/lib
 CERTBOT_LOCAL_DIR_LOGS=~/ssl/letsencrypt/log
 CERTBOT_LOCAL_DIR_CONFIG=~/ssl/letsencrypt/ssl
+#Alternatively, use Certbot's default path
+# CERTBOT_LOCAL_DIR_WORK=/var/lib/letsencrypt
+# CERTBOT_LOCAL_DIR_LOGS=/var/log/letsencrypt
+# CERTBOT_LOCAL_DIR_CONFIG=/etc/letsencrypt
+
 # Local path for unifi-utils to store data
 CERTBOT_LOCAL_DIR_CACHE=~/ssl/letsencrypt/cache
+
 
 # Optional
 # If using a remote server to obtain certificates, and not done directly on this machine
@@ -39,6 +45,9 @@ CERTBOT_EXTERNAL_DIR_CONFIG=/etc/letsencrypt
 
 # Enter your controller information here
 CERTBOT_RUN_CONTROLLER=false
+# This will let you run unifi-utils on the same machine, rather than remotely. Useful if hosting SDN on a server
+CONTROLLER_IS_CK=true
+CONTROLLER_LOCAL=false
 CONTROLLER_HOST=unifi.example.com
 CONTROLLER_USER=ubnt
 CONTROLLER_PASS=ubnt
