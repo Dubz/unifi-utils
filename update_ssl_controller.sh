@@ -161,7 +161,7 @@ if [ "${CONTROLLER_LOCAL}" == "true" ]; then
         cp "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/fullchain.pem" "/etc/ssl/private/cloudkey.crt"
         cp "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/privkey.pem" "/etc/ssl/private/cloudkey.key"
     fi
-    cp "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/fullchain.p12" $"${CONTROLLER_JAVA_DIR}/data/fullchain.p12"
+    cp "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/fullchain.p12" "${CONTROLLER_JAVA_DIR}/data/fullchain.p12"
 else
     if [ "${CONTROLLER_IS_CK}" == "true" ]; then
         sshpass -p "${CONTROLLER_PASS}" scp -q "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/fullchain.pem" ${CONTROLLER_USER}@${CONTROLLER_HOST}:"/etc/ssl/private/cloudkey.crt"
