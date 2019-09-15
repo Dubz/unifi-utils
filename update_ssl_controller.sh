@@ -232,7 +232,7 @@ if [ "${CONTROLLER_IS_CK}" == "true" ]; then
 fi
 echo "done!"
 
-if [ "${CONTROLLER_IS_CK}" == "true" && "${CONTROLLER_HAS_PROTECT}" == "true" ]; then
+if [ "${CONTROLLER_IS_CK}" == "true" ] && [ "${CONTROLLER_HAS_PROTECT}" == "true" ]; then
     # Reload Protect On the CloudKey
     echo -n "Reloading UniFi Protect..."
     if [ "${CONTROLLER_LOCAL}" == "true" ]; then
