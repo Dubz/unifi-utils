@@ -16,10 +16,10 @@
 CERTBOT_LOCAL_DIR_WORK=~/ssl/letsencrypt/lib
 CERTBOT_LOCAL_DIR_LOGS=~/ssl/letsencrypt/log
 CERTBOT_LOCAL_DIR_CONFIG=~/ssl/letsencrypt/ssl
-#Alternatively, use Certbot's default path
-# CERTBOT_LOCAL_DIR_WORK=/var/lib/letsencrypt
-# CERTBOT_LOCAL_DIR_LOGS=/var/log/letsencrypt
-# CERTBOT_LOCAL_DIR_CONFIG=/etc/letsencrypt
+# Alternatively, use Certbot's default path
+#CERTBOT_LOCAL_DIR_WORK=/var/lib/letsencrypt
+#CERTBOT_LOCAL_DIR_LOGS=/var/log/letsencrypt
+#CERTBOT_LOCAL_DIR_CONFIG=/etc/letsencrypt
 
 # Local path for unifi-utils to store data
 CERTBOT_LOCAL_DIR_CACHE=~/ssl/letsencrypt/cache
