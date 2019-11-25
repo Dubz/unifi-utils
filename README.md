@@ -17,9 +17,11 @@ This will upload and install the SSL cert to your UniFi controller
 This will upload and install the SSL cert to your RADIUS server (ex. USG)
 
 ## WARNING
-This setup will contain vital information, and have full control of your UniFI infrastructure
+This setup will contain vital information, and have full control of your UniFI infrastructure.
 Although this utility is doing its job, and nothing else, it is your responsibility to secure all authentication information!
-This includes SSH keys and the config file (which contains the password to your controller, if used)
+This includes SSH keys and the config file (which contains the password to your controller, if used).
+
+We recommend setting the config file's permissions to 0400 (read only for the user running this).
 
 ### Requirements
 * certbot running for your domain (this does not run certbot, it copes the files needed)
@@ -28,9 +30,13 @@ This includes SSH keys and the config file (which contains the password to your 
 * sshpass (used for password authentication into CloudKey, since FW upgrades may wipe SSH keys)
 
 ### INSTALLATION
-1. As always, create a backup of your CloudKey. I am not responsible if you mess it up.
+1. As always, create a backup of your Controller. I am not responsible if you mess it up.
 1. Copy the file "./config-default" to "./config"
 1. Edit the "./config" file to suit your setup
+1. Change the file's permissions to 0400
+1. Add a cron entry to run update_ssl.sh as often as you'd like (it only makes changes if needed, recommended 5 minutes after certbot runs)
+
+    Ex: `5 0,12 * * * cd path-to/unifi-utils && bash ./update_ssl.sh && cd ~`
 
 ### INSTALLATION (LetsEncrypt - CloudKey)
 1. Edit the "./config" file to suit your setup
@@ -38,8 +44,8 @@ This includes SSH keys and the config file (which contains the password to your 
   1. Generate an SSH key for your external server
   1. Add the public key to the external server
   1. Add entries to ~/.ssh/config for your external server
+1. Change the file's permissions to 0400
 1. Run update_ssl_controller.sh to verify operation
-1. Add a cron entry to run update_ssl.sh as often as you'd like (it only makes changes if needed, recommended 5 minutes after certbot runs)
 
 ### INSTALLATION (LetsEncrypt - RADIUS - Linux/USG)
 1. Edit the "./config" file to suit your setup
@@ -48,13 +54,16 @@ This includes SSH keys and the config file (which contains the password to your 
   1. If using USG, add the public key to your SDN (Settings > Site > Device Authentication)
   1. Add entry to ~/.ssh/config
 1. Run update_ssl_radius.sh to verify operation
-1. Add a cron entry to run update_ssl.sh as often as you'd like (it only makes changes if needed, recommended 5 minutes after certbot runs)
 
 ### INSTALLATION (RADIUS - Other)
 * There is currently no support for other RADIUS servers at this time. Please submit a PR if you would like to optionally add support for one
 
 #### Using bridge mode
-You can optionally use this in a "bridge" mode. This will allow you to pull (clone) files from a remote server running certbot, then continue the normal operation of pushing the necessary files to the CloudKey. Simply add an entry to ~/.ssh/config for the remote server running certbot, and edit the options at the top for the external server.
+You can optionally use this in a "bridge" mode. This will allow you to pull (clone) files from a remote server running certbot, then continue the normal operation of pushing the necessary files to the CloudKey.
+1. Add an entry to ~/.ssh/config for the remote server running certbot, and edit the config at the top for the external server.
+1. Add a cron entry to run get_ssl_bridge.sh after certbot runs, and prior to update_ssl.sh is set to run. You can combine the cron jobs to run back to back with one entry by concatenating the cron jobs
+
+    Ex: `5 0,12 * * * cd path-to/unifi-utils && bash ./get_ssl_bridge.sh && bash ./update_ssl.sh && cd ~`
 ###### Requirements
 * rsync (downloads from remote certbot server)
 
@@ -74,4 +83,4 @@ You can optionally use this in a "bridge" mode. This will allow you to pull (clo
 * RADIUS cert installs, but still marked untrusted. If you have a solution to this, please open an issue/PR, or DM me.
 * Protect did not seem to load it back up. Might've been situational, or may need a full restart to load it.
 
-**The script provided is not affiliated with Ubiquiti, or any of its staff. Provided "as-is" without liability.**
+**The scripts provided are not affiliated with Ubiquiti, or any of its staff. Provided "as-is" without liability.**
