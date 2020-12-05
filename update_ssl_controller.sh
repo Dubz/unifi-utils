@@ -2,13 +2,11 @@
 
 # unifi-utils
 # controller_update_ssl.sh
-# UniFi Controller SSL Certificate update script for Unix/Linux Systems
+# Utilities used to automate tasks with UniFi setups
 # by Dubz <https://github.com/Dubz>
 # from unifi-utils <https://github.com/Dubz/unifi-utils>
-# Incorporates ideas from https://github.com/stevejenkins/ubnt-linux-utils/unifi_ssl_import.sh
-# Incorporates ideas from https://source.sosdg.org/brielle/lets-encrypt-scripts
-# Version 0.3
-# Last Updated July 27, 2019
+# Version 2.0-dev
+# Last Updated December 05, 2020
 
 # REQUIREMENTS
 # 1) Assumes you already have a valid SSL certificate
@@ -18,7 +16,7 @@
 # KEYSTORE BACKUP
 # Even though this script attempts to be clever and careful in how it backs up your existing keystore,
 # it's never a bad idea to manually back up your keystore (located at $UNIFI_DIR/data/keystore on RedHat
-# systems or /$UNIFI_DIR/keystore on Debian/Ubunty systems) to a separate directory before running this
+# systems or /$UNIFI_DIR/keystore on Debian/Ubuntu systems) to a separate directory before running this
 # script. If anything goes wrong, you can restore from your backup, restart the UniFi Controller service,
 # and be back online immediately.
 
@@ -30,12 +28,26 @@ if [ -z "${CONFIG_LOADED+x}" ]; then
         echo -n "Copying config-default to config..."
         cp "./config-default" "./config"
         echo "done!"
-        echo "Please configure your settings by editing the config file"
-        exit 1
     fi
     source config
+    if [ "${CONFIG_IS_DEFAULT}" ]; then
+        echo "Please configure your settings by editing the config file."
+        return
+        exit 1
+    fi
 fi
 
+# Load the default vars
+if [ -z "${DEFAULT_SSL_LOCATION+x}" ]; then
+    source vars.sh
+fi
+
+# Load the necessary functions
+if ! [ typeset -f check_file_exist > /dev/null ]; then
+    source func.sh
+fi
+
+# Does this run according to the config?
 if [ "${CERTBOT_RUN_CONTROLLER}" != "true" ]; then
     echo "Controller is not to be updated based on ./config"
     return
@@ -48,56 +60,117 @@ if [ "${CERTBOT_USE_EXTERNAL}" == "true" ] && [ "${BRIDGE_SYNCED}" != "true" ]; 
 fi
 
 
+# What's the target?
+if [ "${CONTROLLER_TARGET_DEVICE}" == "SELFHOST" ]; then
+    CONTROLLER_SSL_KEYSTORE=${CONTROLLER_SELFHOST_SSL_KEYSTORE}
+    CONTROLLER_SSL_KEY=${CONTROLLER_SELFHOST_SSL_KEY}
+    CONTROLLER_SSL_CRT=${CONTROLLER_SELFHOST_SSL_CRT}
+    CONTROLLER_SSL_PRE_DEPLOY_EXEC=${CONTROLLER_SELFHOST_SSL_PRE_DEPLOY_EXEC}
+    CONTROLLER_SSL_POST_DEPLOY_EXEC=${CONTROLLER_SELFHOST_SSL_POST_DEPLOY_EXEC}
+elif [ "${CONTROLLER_TARGET_DEVICE}" == "DOCKER" ]; then
+    CONTROLLER_SSL_KEYSTORE=${CONTROLLER_DOCKER_SSL_KEYSTORE}
+    CONTROLLER_SSL_KEY=${CONTROLLER_DOCKER_SSL_KEY}
+    CONTROLLER_SSL_CRT=${CONTROLLER_DOCKER_SSL_CRT}
+    CONTROLLER_SSL_PRE_DEPLOY_EXEC=${CONTROLLER_DOCKER_SSL_PRE_DEPLOY_EXEC}
+    CONTROLLER_SSL_POST_DEPLOY_EXEC=${CONTROLLER_DOCKER_SSL_POST_DEPLOY_EXEC}
+else
+    # Pull the targets from vars.sh
+    if [ "${DEFAULT_SSL_LOCATION[$CONTROLLER_TARGET_DEVICE]}" ]; then
+        if [ "${CONTROLLER_TARGET_IS_UNIOS}" ]; then
+            CONTROLLER_SSL_KEYSTORE=${DEFAULT_SSL_LOCATION[$CONTROLLER_TARGET_DEVICE]["UniOS"]["KEYSTORE"]}
+            CONTROLLER_SSL_KEY=${DEFAULT_SSL_LOCATION[$CONTROLLER_TARGET_DEVICE]["UniOS"]["KEY"]}
+            CONTROLLER_SSL_CRT=${DEFAULT_SSL_LOCATION[$CONTROLLER_TARGET_DEVICE]["UniOS"]["CRT"]}
+            CONTROLLER_SSL_PRE_DEPLOY_EXEC=${DEFAULT_SSL_LOCATION[$CONTROLLER_TARGET_DEVICE]["UniOS"]["PRE_DEPLOY_EXEC"]}
+            CONTROLLER_SSL_POST_DEPLOY_EXEC=${DEFAULT_SSL_LOCATION[$CONTROLLER_TARGET_DEVICE]["UniOS"]["POST_DEPLOY_EXEC"]}
+        else
+            CONTROLLER_SSL_KEYSTORE=${DEFAULT_SSL_LOCATION[$CONTROLLER_TARGET_DEVICE]["legacy"]["KEYSTORE"]}
+            CONTROLLER_SSL_KEY=${DEFAULT_SSL_LOCATION[$CONTROLLER_TARGET_DEVICE]["legacy"]["KEY"]}
+            CONTROLLER_SSL_CRT=${DEFAULT_SSL_LOCATION[$CONTROLLER_TARGET_DEVICE]["legacy"]["CRT"]}
+            CONTROLLER_SSL_PRE_DEPLOY_EXEC=${DEFAULT_SSL_LOCATION[$CONTROLLER_TARGET_DEVICE]["legacy"]["PRE_DEPLOY_EXEC"]}
+            CONTROLLER_SSL_POST_DEPLOY_EXEC=${DEFAULT_SSL_LOCATION[$CONTROLLER_TARGET_DEVICE]["legacy"]["POST_DEPLOY_EXEC"]}
+        fi
+    else
+        echo "Target not supported!"
+        return
+        exit 1
+    fi
+fi
+
+# Basic check for an actual destination
+# Default blank/empty to false for ease of checking
+if [ "${CONTROLLER_SSL_KEY}" == "" ]; then CONTROLLER_SSL_KEY=false; fi
+if [ "${CONTROLLER_SSL_CRT}" == "" ]; then CONTROLLER_SSL_CRT=false; fi
+if [ "${CONTROLLER_SSL_KEYSTORE}" == "" ]; then CONTROLLER_SSL_KEYSTORE=false; fi
+
+if [ "${CONTROLLER_SSL_KEY}" == "false" ] || [ "${CONTROLLER_SSL_CRT}" == "false" ]; then
+    if [ "${CONTROLLER_SSL_KEYSTORE}" == "false" ]; then
+        echo "Install target required!"
+        return
+        exit 1
+    fi
+fi
+
+
 # Are the required cert files there?
-for f in cert.pem fullchain.pem privkey.pem
+for f in ("${SSLCERT_CERT}" "${SSLCERT_FULLCHAIN}" "${SSLCERT_KEY}")
 do
-    if [ ! -s "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/${f}" ]; then
+    if [ ! -s "${f}" ]; then
         echo "Missing file: ${f} - aborting!"
         return
         exit 1
     fi
 done
 
-# Create cache directory/file if not existing
-if [ ! -f "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/sha512" ]; then
-    if [ ! -d "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/" ]; then
-        mkdir --parents "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/"
+
+# Time to check/verify cert information now
+# At this point, we are to assume:
+#  1) The config has been set up
+#  2) The cert files needed are on this machine
+#  3) Everything needed to perform this operation is loaded
+# We will first verify we have files to work with
+# Once we have them, we will verify integrity with one another
+# After that, see if it's already installed on the destination device
+# If it is not, proceed with the deployment
+
+
+# Create cache directory/file if they don't already exist
+if [ ! -f "${SSLCERT_LOCAL_DIR_CACHE}/sha512" ]; then
+    if [ ! -d "${SSLCERT_LOCAL_DIR_CACHE}/" ]; then
+        mkdir --parents "${SSLCERT_LOCAL_DIR_CACHE}/"
     fi
-    touch "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/sha512"
+    touch "${SSLCERT_LOCAL_DIR_CACHE}/sha512"
 fi
 
-# Check integrity and for any changes/differences, before doing anything on the CloudKey
+# Check cert integrity, and for any changes/differences, before doing anything on the controller
 # We'll check all 3 just because, even though we're only using 2 of them
 echo -n "Checking certificate integrity..."
-sha512_cert=$(openssl x509 -noout -modulus -in "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/cert.pem" | openssl sha512)
-sha512_fullchain=$(openssl x509 -noout -modulus -in "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/fullchain.pem" | openssl sha512)
-sha512_privkey=$(openssl rsa -noout -modulus -in "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/privkey.pem" | openssl sha512)
-sha512_last=$(<"${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/sha512")
+sha512_cert=$(openssl x509 -noout -modulus -in "${SSLCERT_CERT}" | openssl sha512)
+sha512_fullchain=$(openssl x509 -noout -modulus -in "${SSLCERT_FULLCHAIN}" | openssl sha512)
+sha512_privkey=$(openssl rsa -noout -modulus -in "${SSLCERT_KEY}" | openssl sha512)
+sha512_last=$(<"${SSLCERT_LOCAL_DIR_CACHE}/sha512")
 if [ "${sha512_privkey}" != "${sha512_cert}" ]; then
     echo "Private key and cert do not match!"
+    return
     exit 1
 elif [ "${sha512_privkey}" != "${sha512_fullchain}" ]; then
     echo "Private key and full chain do not match!"
+    return
     exit 1
 else
     echo "integrity passed!"
     # Did the keys change? If not, no sense in continuing...
     if [ "${sha512_privkey}" == "${sha512_last}" ]; then
         # Did it change there? If no, no sense in continuing...
-        if [ "${CONTROLLER_IS_CK}" == "true" ]; then
-            if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-                sha512_controller=$(openssl rsa -noout -modulus -in "/etc/ssl/private/cloudkey.key" | openssl sha512)
-            else
-                sha512_controller=$(sshpass -p "${CONTROLLER_PASS}" ssh -o LogLevel=error ${CONTROLLER_USER}@${CONTROLLER_HOST} "openssl rsa -noout -modulus -in \"/etc/ssl/private/cloudkey.key\" | openssl sha512")
-            fi
+        if [ "${CONTROLLER_LOCAL}" == "true" ]; then
+            sha512_controller=$(openssl rsa -noout -modulus -in "/etc/ssl/private/cloudkey.key" | openssl sha512)
         else
-            echo "Keys did not change, stopping!"
-            exit 0
+            sha512_controller=$(sshpass -p "${CONTROLLER_PASS}" ssh -o "VerifyHostKeyDNS=yes" -o "LogLevel=error" ${CONTROLLER_USER}@${CONTROLLER_HOST} "openssl rsa -noout -modulus -in \"/etc/ssl/private/cloudkey.key\" | openssl sha512")
         fi
         if [ "${sha512_privkey}" != "${sha512_controller}" ]; then
             echo "Key is not on controller, installer will continue!"
         else
             echo "Keys did not change, stopping!"
+            return
             exit 0
         fi
     else
@@ -107,162 +180,125 @@ fi
 
 
 # Convert cert to PKCS12 format
-echo -n "Exporting SSL certificate and key data into temporary PKCS12 file..."
-openssl pkcs12 -export \
-    -inkey "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/privkey.pem" \
-    -in "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/fullchain.pem" \
-    -out "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/fullchain.p12" \
-    -name ${CONTROLLER_KEYSTORE_ALIAS} \
-    -passout pass:${CONTROLLER_KEYSTORE_PASSWORD}
-echo "done!"
+if [ ! -s "${SSLCERT_FULLCHAIN_P12}" ]; then
+    echo -n "Exporting SSL certificate and key data into temporary PKCS12 file..."
+    openssl pkcs12 -export \
+        -inkey "${SSLCERT_KEY}" \
+        -in "${SSLCERT_FULLCHAIN}" \
+        -out "${SSLCERT_FULLCHAIN_P12}" \
+        -name ${CONTROLLER_KEYSTORE_ALIAS} \
+        -passout pass:${CONTROLLER_KEYSTORE_PASSWORD}
+    echo "done!"
+else
+    echo "SSL certificate already provided in PKCS12 format, continuing."
+fi
 
 
-# Everything is prepped, time to interact with the CloudKey!
+# Everything is prepped, time to interact with the Controller!
+
+# Pre-deployment command
+if [ "${CONTROLLER_SSL_PRE_DEPLOY_EXEC}" ]; then
+    echo "Running pre-deployment command..."
+    send_exec ${CONTROLLER_SSL_PRE_DEPLOY_EXEC}
+    echo "Pre-deployment command execution completed!"
+else
+    echo "No pre-deployment command found, starting!"
+fi
+
+
 
 
 # Backups backups backups!
 
-# Backup original keystore on CK
-echo -n "Creating backup of keystore on controller..."
-if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-    if [ -s "${CONTROLLER_KEYSTORE}.orig" ]; then
-        echo -n "Backup of original keystore exists! Creating non-destructive backup as keystore.bak...";
-        sudo cp -n "${CONTROLLER_KEYSTORE}" "${CONTROLLER_KEYSTORE}.bak";
-    else
-        echo -n "no original keystore backup found. Creating backup as keystore.orig...";
-        sudo cp -n "${CONTROLLER_KEYSTORE}" "${CONTROLLER_KEYSTORE}.orig";
-    fi
-else
-    # sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "if [ -s \"${CONTROLLER_KEYSTORE}.orig\" ]; then cp -n \"${CONTROLLER_KEYSTORE}\" \"${CONTROLLER_KEYSTORE}.orig\"; else cp -n \"${CONTROLLER_KEYSTORE}\" \"${CONTROLLER_KEYSTORE}.bak\"; fi"
-    sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} 'if [ -s "'${CONTROLLER_KEYSTORE}'.orig" ]; then echo -n "Backup of original keystore exists! Creating non-destructive backup as keystore.bak..."; sudo cp -n "'${CONTROLLER_KEYSTORE}'" "'${CONTROLLER_KEYSTORE}'.bak"; else echo -n "no original keystore backup found. Creating backup as keystore.orig..."; sudo cp -n "'${CONTROLLER_KEYSTORE}'" "'${CONTROLLER_KEYSTORE}'.orig"; fi'
+# Backup key(s) on Controller
+if [ "${CONTROLLER_SSL_KEY}" != "false" ]; then
+    for key in "${CONTROLLER_SSL_KEY}"
+    do
+        backup_file ${key}
+    done
 fi
-echo "done!"
+# Backup cert(s) on Controller
+if [ "${CONTROLLER_SSL_CRT}" != "false" ]; then
+    for crt in "${CONTROLLER_SSL_CRT}"
+    do
+        backup_file ${crt}
+    done
+fi
 
-# Backup original keys on CK for nginx
-if [ "${CONTROLLER_IS_CK}" == "true" ]; then
-    echo -n "Creating backups of cloudkey.key and cloudkey.crt on controller..."
-    if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-        for f in {cloudkey.key,cloudkey.crt}; do
-            sudo cp -n "/etc/ssl/private/${f}" "/etc/ssl/private/${f}.bak";
-        done
-    else
-        sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} 'for f in {cloudkey.key,cloudkey.crt}; do sudo cp -n "/etc/ssl/private/${f}" "/etc/ssl/private/${f}.bak"; done'
-    fi
-    echo "done!"
+# Backup keystore(s) on Controller
+if [ "${CONTROLLER_SSL_KEYSTORE[@]}" != "false" ]; then
+    for ks in "${CONTROLLER_SSL_KEYSTORE[@]}"
+    do
+        echo -n "Creating backup of ${ks} on controller..."
+        backup_file ${ks}
+        echo "done!"
+    done
 fi
 
 
-# Copy over...
-
-# Copy to CK
+# Time to deploy crts/keys
 echo -n "Copying files to controller..."
-if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-    if [ "${CONTROLLER_IS_CK}" == "true" ]; then
-        cp "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/fullchain.pem" "/etc/ssl/private/cloudkey.crt"
-        cp "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/privkey.pem" "/etc/ssl/private/cloudkey.key"
-    fi
-    cp "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/fullchain.p12" "${CONTROLLER_JAVA_DIR}/data/fullchain.p12"
+if [ "${CONTROLLER_SSL_KEY[@]}" != "false" ]; then
+    for ssl_key in "${CONTROLLER_SSL_KEY[@]}"
+    do
+        copy_file "${SSLCERT_KEY}" "${ssl_key}"
+    done
+fi
+
+if [ "${CONTROLLER_SSL_CRT[@]}" != "false" ]; then
+    for ssl_crt in "${CONTROLLER_SSL_CRT[@]}"
+    do
+        copy_file "${SSLCERT_FULLCHAIN}" "${ssl_crt}"
+    done
+fi
+if [ "${CONTROLLER_SSL_KEYSTORE[@]}" != "false" ]; then
+    # This is deployed to a temporary/remote cache, then used to install to the keystore(s)
+    copy_file "${SSLCERT_FULLCHAIN_P12}" "${SSLCERT_REMOTE_DIR_CACHE}/fullchain.p12"
+fi
+echo "done!"
+
+
+# Deploy keystore
+echo -n "Removing previous certificate data from ${CONTROLLER_KEYSTORE_ALIAS} keystore..."
+if [ "${CONTROLLER_SSL_KEYSTORE[@]}" != "false" ]; then
+    for ks in "${CONTROLLER_SSL_KEYSTORE[@]}"
+    do
+        keytool_delete "${ks}" "${CONTROLLER_KEYSTORE_ALIAS}" "${CONTROLLER_KEYSTORE_PASSWORD}"
+    done
+fi
+echo "done!"
+echo -n "Importing SSL certificate into ${CONTROLLER_KEYSTORE_ALIAS} keystore..."
+if [ "${CONTROLLER_SSL_KEYSTORE[@]}" != "false" ]; then
+    for ks in "${CONTROLLER_SSL_KEYSTORE[@]}"
+    do
+        keytool_import "${ks}" "${CONTROLLER_KEYSTORE_ALIAS}" "${CONTROLLER_KEYSTORE_PASSWORD}" "${SSLCERT_FULLCHAIN_P12}"
+    done
+fi
+echo "done!"
+
+
+
+
+# Post-deployment command
+if [ "${CONTROLLER_SSL_POST_DEPLOY_EXEC}" ]; then
+    echo "Running post-deployment command..."
+    send_exec ${CONTROLLER_SSL_POST_DEPLOY_EXEC}
+    echo "Post-deployment command execution completed!"
 else
-    if [ "${CONTROLLER_IS_CK}" == "true" ]; then
-        sshpass -p "${CONTROLLER_PASS}" scp -q "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/fullchain.pem" ${CONTROLLER_USER}@${CONTROLLER_HOST}:"/etc/ssl/private/cloudkey.crt"
-        sshpass -p "${CONTROLLER_PASS}" scp -q "${CERTBOT_LOCAL_DIR_CONFIG}/live/${CONTROLLER_HOST}/privkey.pem" ${CONTROLLER_USER}@${CONTROLLER_HOST}:"/etc/ssl/private/cloudkey.key"
-    fi
-    sshpass -p "${CONTROLLER_PASS}" scp -q "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/fullchain.p12" ${CONTROLLER_USER}@${CONTROLLER_HOST}:"${CONTROLLER_JAVA_DIR}/data/fullchain.p12"
-fi
-echo "done!"
-
-
-# Stop service...
-echo -n "Stopping UniFi Controller..."
-if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-    service ${CONTROLLER_SERVICE_UNIFI_NETWORK} stop
-else
-    sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "service ${CONTROLLER_SERVICE_UNIFI_NETWORK} stop"
-fi
-echo "done!"
-
-
-# Load keystore changes
-echo -n "Removing previous certificate data from UniFi keystore..."
-if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-    keytool -delete -alias ${CONTROLLER_KEYSTORE_ALIAS} -keystore ${CONTROLLER_KEYSTORE} -deststorepass ${CONTROLLER_KEYSTORE_PASSWORD}
-else
-    sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "keytool -delete -alias ${CONTROLLER_KEYSTORE_ALIAS} -keystore ${CONTROLLER_KEYSTORE} -deststorepass ${CONTROLLER_KEYSTORE_PASSWORD}"
-fi
-echo "done!"
-echo -n "Importing SSL certificate into UniFi keystore..."
-if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-    keytool -importkeystore \
-        -srckeystore "${CONTROLLER_JAVA_DIR}/data/fullchain.p12" \
-        -srcstoretype PKCS12 \
-        -srcstorepass ${CONTROLLER_KEYSTORE_PASSWORD} \
-        -destkeystore ${CONTROLLER_KEYSTORE} \
-        -deststorepass ${CONTROLLER_KEYSTORE_PASSWORD} \
-        -destkeypass ${CONTROLLER_KEYSTORE_PASSWORD} \
-        -alias ${CONTROLLER_KEYSTORE_ALIAS}
-else
-    sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "keytool -importkeystore \
-        -srckeystore \"${CONTROLLER_JAVA_DIR}/data/fullchain.p12\" \
-        -srcstoretype PKCS12 \
-        -srcstorepass ${CONTROLLER_KEYSTORE_PASSWORD} \
-        -destkeystore ${CONTROLLER_KEYSTORE} \
-        -deststorepass ${CONTROLLER_KEYSTORE_PASSWORD} \
-        -destkeypass ${CONTROLLER_KEYSTORE_PASSWORD} \
-        -alias ${CONTROLLER_KEYSTORE_ALIAS}"
-fi
-echo "done!"
-
-
-# Reload... (jk doesn't work with SDN part...)
-# echo -n "Reloading UniFi Controller to apply new Let's Encrypt SSL certificate..."
-# sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "service ${CONTROLLER_SERVICE_UNIFI_NETWORK} reload"
-# echo "done!"
-# Start service back up
-echo -n "Restarting UniFi Controller to apply new Let's Encrypt SSL certificate..."
-if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-    service ${CONTROLLER_SERVICE_UNIFI_NETWORK} start
-else
-    sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "service ${CONTROLLER_SERVICE_UNIFI_NETWORK} start"
-fi
-echo "done!"
-
-# Reload nginx on the CloudKey
-echo -n "Reloading nginx..."
-if [ "${CONTROLLER_IS_CK}" == "true" ]; then
-    if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-        service nginx reload
-    else
-        sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "service nginx reload"
-    fi
-fi
-echo "done!"
-
-if [ "${CONTROLLER_IS_CK}" == "true" ] && [ "${CONTROLLER_HAS_PROTECT}" == "true" ]; then
-    # Reload Protect On the CloudKey
-    echo -n "Reloading UniFi Protect..."
-    if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-        service ${CONTROLLER_SERVICE_UNIFI_PROTECT} reload
-    else
-        sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "service ${CONTROLLER_SERVICE_UNIFI_PROTECT} reload"
-    fi
-    echo "done!"
+    echo "No post-deployment command found, finishing!"
 fi
 
 
 echo -n "Cleaning up CloudKey..."
-if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-    rm -f "${CONTROLLER_JAVA_DIR}/data/fullchain.p12"
-else
-    sshpass -p "${CONTROLLER_PASS}" ssh ${CONTROLLER_USER}@${CONTROLLER_HOST} "rm -f \"${CONTROLLER_JAVA_DIR}/data/fullchain.p12\""
-fi
+send_exec "rm -f \"${SSLCERT_REMOTE_DIR_CACHE}/fullchain.p12\""
 echo "done!"
 
 
 # Save the new key hash to the cache for next run
 echo -n "Caching cert hash..."
-echo ${sha512_privkey} > "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/sha512"
+echo ${sha512_privkey} > "${SSLCERT_LOCAL_DIR_CACHE}/sha512"
 # Log for reference
-echo ${sha512_privkey} >> "${CERTBOT_LOCAL_DIR_CACHE}/${CONTROLLER_HOST}/sha512.log"
+echo ${sha512_privkey} >> "${SSLCERT_LOCAL_DIR_CACHE}/sha512.log"
 echo "done!"
 
 

@@ -1,12 +1,12 @@
 #!/bin/sh
 
 # unifi-utils
-# cron.sh
-# Main script for Unifi Utils
+# update_ssl.sh
+# Utilities used to automate tasks with UniFi setups
 # by Dubz <https://github.com/Dubz>
 # from unifi-utils <https://github.com/Dubz/unifi-utils>
-# Version 0.3
-# Last Updated July 27, 2019
+# Version 2.0-dev
+# Last Updated December 05, 2020
 
 # REQUIREMENTS
 # 1) Assumes you already have valid SSL certificates
@@ -20,6 +20,7 @@
 # script. If anything goes wrong, you can restore from your backup, restart the UniFi Controller service,
 # and be back online immediately.
 
+
 if [ ! -s "config" ]; then
 	echo "CONFIG FILE NOT FOUND!"
 	echo -n "Copying config-default to config..."
@@ -31,16 +32,24 @@ fi
 
 # Load the config file
 source config
+if [ "${CONFIG_IS_DEFAULT}" ]; then
+    echo "Please configure your settings by editing the config file."
+    exit 1
+fi
+
+# Load the default vars
+if [ -z "${DEFAULT_SSL_LOCATION+x}" ]; then
+    source vars.sh
+fi
+
+# Load the necessary functions
+if ! [ typeset -f check_file_exist > /dev/null ]; then
+    source func.sh
+fi
 
 # Installer for controller
 if [ "${CERTBOT_RUN_CONTROLLER}" == "true" ]; then
 	echo "Running update_ssl_controller.sh..."
 	source update_ssl_controller.sh
 	echo "Controller SSL udpated!"
-fi
-# Installer for RADIUS server
-if [ "${CERTBOT_RUN_RADIUS}" == "true" ]; then
-	echo "Running update_ssl_radius.sh..."
-	source update_ssl_radius.sh
-	echo "RADIUS server SSL udpated!"
 fi

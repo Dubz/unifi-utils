@@ -1,14 +1,12 @@
 #!/bin/sh
 
 # unifi-utils
-# controller_update_ssl.sh
-# UniFi Controller SSL Certificate update script for Unix/Linux Systems
+# update_ssl_radius.sh
+# Utilities used to automate tasks with UniFi setups
 # by Dubz <https://github.com/Dubz>
 # from unifi-utils <https://github.com/Dubz/unifi-utils>
-# Incorporates ideas from https://github.com/stevejenkins/ubnt-linux-utils/unifi_ssl_import.sh
-# Incorporates ideas from https://source.sosdg.org/brielle/lets-encrypt-scripts
-# Version 0.3
-# Last Updated July 27, 2019
+# Version 2.0-dev
+# Last Updated December 05, 2020
 
 # REQUIREMENTS
 # 1) Assumes you already have a valid SSL certificate
@@ -30,10 +28,18 @@ if [ -z "${CONFIG_LOADED+x}" ]; then
         echo -n "Copying config-default to config..."
         cp "./config-default" "./config"
         echo "done!"
-        echo "Please configure your settings by editing the config file"
-        exit 1
     fi
     source config
+    if [ "${CONFIG_IS_DEFAULT}" ]; then
+        echo "Please configure your settings by editing the config file."
+        return
+        exit 1
+    fi
+fi
+
+# Load the necessary functions
+if ! [ typeset -f check_file_exist > /dev/null ]; then
+    source func.sh
 fi
 
 if [ "${CERTBOT_RUN_RADIUS}" != "true" ]; then
@@ -44,7 +50,7 @@ fi
 
 # Clone from external server to local server (if used)
 if [ "${CERTBOT_USE_EXTERNAL}" == "true" ] && [ "${BRIDGE_SYNCED}" != "true" ]; then
-    source update_ssl_bridge.sh
+    source get_ssl_bridge.sh
 fi
 
 
@@ -75,20 +81,23 @@ sha512_privkey=$(openssl rsa -noout -modulus -in "${CERTBOT_LOCAL_DIR_CONFIG}/li
 sha512_last=$(<"${CERTBOT_LOCAL_DIR_CACHE}/${RADIUS_HOST}/sha512")
 if [ "${sha512_privkey}" != "${sha512_cert}" ]; then
     echo "Private key and cert do not match!"
+    return
     exit 1
 elif [ "${sha512_privkey}" != "${sha512_fullchain}" ]; then
     echo "Private key and full chain do not match!"
+    return
     exit 1
 else
     echo "integrity passed!"
     # Did the key change? If not, no sense in continuing...
     if [ "${sha512_privkey}" == "${sha512_last}" ]; then
         # Did it change there? If no, no sense in continuing...
-        sha512_controller=$(ssh -o LogLevel=error ${RADIUS_USER}@${RADIUS_HOST} "sudo openssl rsa -noout -modulus -in \"${RADIUS_KEY}\" | openssl sha512")
+        sha512_controller=$(ssh -o "VerifyHostKeyDNS=yes" -o "LogLevel=error" ${RADIUS_USER}@${RADIUS_HOST} "sudo openssl rsa -noout -modulus -in \"${RADIUS_KEY}\" | openssl sha512")
         if [ "${sha512_privkey}" != "${sha512_controller}" ]; then
             echo "Key is not on controller, installer will continue!"
         else
             echo "Key did not change, stopping!"
+            return
             exit 0
         fi
     else
@@ -104,9 +113,9 @@ fi
 
 # Backup original key/cert on RADIUS
 # echo -n "Creating backups of key and cert on server..."
-# ssh -o LogLevel=error ${RADIUS_USER}@${RADIUS_HOST} "if sudo test -s \"${RADIUS_CERT}.orig\"; then echo -n \"Backup of original cert exists! Creating non-destructive backup as ${RADIUS_CERT}.bak...\"; sudo cp \"${RADIUS_CERT}\" \"${RADIUS_CERT}.bak\"; else echo -n \"no original cert backup found. Creating backup as ${RADIUS_CERT}.orig...\"; sudo cp \"${RADIUS_CERT}\" \"${RADIUS_CERT}.orig\"; fi; if sudo test -s \"${RADIUS_KEY}.orig\"; then echo -n \"Backup of original key exists! Creating non-destructive backup as ${RADIUS_KEY}.bak...\"; sudo cp \"${RADIUS_KEY}\" \"${RADIUS_KEY}.bak\"; else echo -n \"no original key backup found. Creating backup as ${RADIUS_KEY}.orig...\"; sudo cp \"${RADIUS_KEY}\" \"${RADIUS_KEY}.orig\"; fi"
+# ssh -o "VerifyHostKeyDNS=yes" -o "LogLevel=error" ${RADIUS_USER}@${RADIUS_HOST} "if sudo test -s \"${RADIUS_CERT}.orig\"; then echo -n \"Backup of original cert exists! Creating non-destructive backup as ${RADIUS_CERT}.bak...\"; sudo cp \"${RADIUS_CERT}\" \"${RADIUS_CERT}.bak\"; else echo -n \"no original cert backup found. Creating backup as ${RADIUS_CERT}.orig...\"; sudo cp \"${RADIUS_CERT}\" \"${RADIUS_CERT}.orig\"; fi; if sudo test -s \"${RADIUS_KEY}.orig\"; then echo -n \"Backup of original key exists! Creating non-destructive backup as ${RADIUS_KEY}.bak...\"; sudo cp \"${RADIUS_KEY}\" \"${RADIUS_KEY}.bak\"; else echo -n \"no original key backup found. Creating backup as ${RADIUS_KEY}.orig...\"; sudo cp \"${RADIUS_KEY}\" \"${RADIUS_KEY}.orig\"; fi"
 echo -n "Creating backup of pem key on server..."
-ssh -o LogLevel=error ${RADIUS_USER}@${RADIUS_HOST} "if sudo test -s \"${RADIUS_PEM}.orig\"; then echo -n \"Backup of original pem exists! Creating non-destructive backup as ${RADIUS_PEM}.bak...\"; sudo cp \"${RADIUS_PEM}\" \"${RADIUS_PEM}.bak\"; else echo -n \"no original pem backup found. Creating backup as ${RADIUS_PEM}.orig...\"; sudo cp \"${RADIUS_PEM}\" \"${RADIUS_PEM}.orig\"; fi;"
+ssh -o "VerifyHostKeyDNS=yes" -o "LogLevel=error" ${RADIUS_USER}@${RADIUS_HOST} "if sudo test -s \"${RADIUS_PEM}.orig\"; then echo -n \"Backup of original pem exists! Creating non-destructive backup as ${RADIUS_PEM}.bak...\"; sudo cp \"${RADIUS_PEM}\" \"${RADIUS_PEM}.bak\"; else echo -n \"no original pem backup found. Creating backup as ${RADIUS_PEM}.orig...\"; sudo cp \"${RADIUS_PEM}\" \"${RADIUS_PEM}.orig\"; fi;"
 echo "done!"
 
 
@@ -124,15 +133,15 @@ scp -q "${CERTBOT_LOCAL_DIR_CONFIG}/live/${RADIUS_HOST}/privkey.pem" ${RADIUS_US
 scp -q "${CERTBOT_LOCAL_DIR_CACHE}/${RADIUS_HOST}/server.pem" ${RADIUS_USER}@${RADIUS_HOST}:"~/server.pem"
 echo -n "moving to proper location..."
 # radius
-ssh -o LogLevel=error ${RADIUS_USER}@${RADIUS_HOST} "sudo mv -f ~/fullchain.pem ${RADIUS_CERT}; sudo mv -f ~/privkey.pem ${RADIUS_KEY}; sudo chmod 644 ${RADIUS_CERT}; sudo chown root:ssl-cert ${RADIUS_CERT}; sudo chmod 640 ${RADIUS_KEY}; sudo chown root:ssl-cert ${RADIUS_KEY}"
+ssh -o "VerifyHostKeyDNS=yes" -o "LogLevel=error" ${RADIUS_USER}@${RADIUS_HOST} "sudo mv -f ~/fullchain.pem ${RADIUS_CERT}; sudo mv -f ~/privkey.pem ${RADIUS_KEY}; sudo chmod 644 ${RADIUS_CERT}; sudo chown root:ssl-cert ${RADIUS_CERT}; sudo chmod 640 ${RADIUS_KEY}; sudo chown root:ssl-cert ${RADIUS_KEY}"
 # lighttpd
-ssh -o LogLevel=error ${RADIUS_USER}@${RADIUS_HOST} "sudo mv -f ~/server.pem ${RADIUS_PEM}; sudo chmod 400 ${RADIUS_PEM}; sudo chown root:root ${RADIUS_PEM};"
+ssh -o "VerifyHostKeyDNS=yes" -o "LogLevel=error" ${RADIUS_USER}@${RADIUS_HOST} "sudo mv -f ~/server.pem ${RADIUS_PEM}; sudo chmod 400 ${RADIUS_PEM}; sudo chown root:root ${RADIUS_PEM};"
 echo "done!"
 
 
 # Reload service on the 
 echo -n "Restarting ${RADIUS_SERVICE} and lighttpd..."
-ssh -o LogLevel=error ${RADIUS_USER}@${RADIUS_HOST} 'sudo service '${RADIUS_SERVICE}' restart; sudo kill -SIGTERM $(cat /var/run/lighttpd.pid); sudo /usr/sbin/lighttpd -f /etc/lighttpd/lighttpd.conf'
+ssh -o "VerifyHostKeyDNS=yes" -o "LogLevel=error" ${RADIUS_USER}@${RADIUS_HOST} 'sudo service '${RADIUS_SERVICE}' restart; sudo kill -SIGTERM $(cat /var/run/lighttpd.pid); sudo /usr/sbin/lighttpd -f /etc/lighttpd/lighttpd.conf'
 echo "done!"
 
 

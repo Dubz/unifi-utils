@@ -1,0 +1,66 @@
+ls -lsa /etc/ssl/private /var/lib/unifi /data/unifi-core/config
+
+
+UC-CK:
+	/etc/ssl/private/
+		cloudkey.crt
+		cloudkey.key
+		unifi.keystore.jks
+
+
+UCK-G2:
+	???
+
+
+UCK-G2 (UniOS):
+	???
+
+
+UCK-G2-PLUS:
+	/etc/ssl/private/
+		cloudkey.crt
+		cloudkey.key
+		unifi.keystore.jks
+
+UCK-G2-PLUS (UniOS):
+	/data/unifi-core/config/
+		unifi-core.key
+		unifi-core.crt
+
+
+UDM (UniOS):
+	/data/unifi-core/config/
+		unifi-core.key
+		unifi-core.crt
+
+
+UDM-Pro (UniOS):
+	/data/unifi-core/config/
+		unifi-core.key
+		unifi-core.crt
+
+
+UNVR (UniOS):
+	/etc/ssl/private/
+		cloudkey.crt
+		cloudkey.key
+Uses:
+	/data/unifi-core/config/
+		unifi-core.key
+		unifi-core.crt
+
+
+UNVR-Pro:
+	???
+
+
+DOCKER:
+	CONFIG=~/docker/unifi/config
+	keystore=${DOCKER_CONFIG}/data/keystore
+
+
+Debian/Ubuntu:
+	/var/lib/unifi/keystore
+
+
+Deb package: unknown

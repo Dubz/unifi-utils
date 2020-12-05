@@ -3,15 +3,23 @@
 # unifi-utils
 # config-default
 # Utilities used to automate tasks with UniFi setups
+# by Dubz <https://github.com/Dubz>
+# from unifi-utils <https://github.com/Dubz/unifi-utils>
+# Version 2.0-dev
+# Last Updated December 05, 2020
 #
 # This config file is your control point for managing your utility system
 # Simply copy this file to "./config" and edit as desired
+
+
 
 
 ###########################
 ####  BEGIN: CERTBOT   ####
 ###########################
 
+# Primary domain on the cert
+CERTBOT_PRIMARY_DOMAIN=unifi.example.com
 # Local path to Let's Encrypt files
 CERTBOT_LOCAL_DIR_WORK=~/ssl/letsencrypt/lib
 CERTBOT_LOCAL_DIR_LOGS=~/ssl/letsencrypt/log
@@ -21,22 +29,50 @@ CERTBOT_LOCAL_DIR_CONFIG=~/ssl/letsencrypt/ssl
 #CERTBOT_LOCAL_DIR_LOGS=/var/log/letsencrypt
 #CERTBOT_LOCAL_DIR_CONFIG=/etc/letsencrypt
 
-# Local path for unifi-utils to store data
-CERTBOT_LOCAL_DIR_CACHE=~/ssl/letsencrypt/cache
 
 
-# Optional
+# OPTIONAL: Remote certbot
 # If using a remote server to obtain certificates, and not done directly on this machine
-CERTBOT_USE_EXTERNAL=false
+# Be sure to run `ssh user@host` on your machine to verify it is able to reach the destination host!
+CERTBOT_PULL_EXTERNAL=false
 CERTBOT_EXTERNAL_HOST=api.example.com
 CERTBOT_EXTERNAL_USER=certbot-example_com
+# We don't use passwords. You will need to configure an entry in ~/.ssh/config
+# Default certbot run dir
 CERTBOT_EXTERNAL_DIR_WORK=/var/lib/letsencrypt
 CERTBOT_EXTERNAL_DIR_LOGS=/var/log/letsencrypt
 CERTBOT_EXTERNAL_DIR_CONFIG=/etc/letsencrypt
+# Custom dir example provided. Uncomment, and edit as desired for your setup
+# CERTBOT_EXTERNAL_DIR_WORK=/home/${CERTBOT_EXTERNAL_USER}/ssl/letsencrypt/lib
+# CERTBOT_EXTERNAL_DIR_LOGS=/home/${CERTBOT_EXTERNAL_USER}/ssl/letsencrypt/log
+# CERTBOT_EXTERNAL_DIR_CONFIG=/home/${CERTBOT_EXTERNAL_USER}/ssl/letsencrypt/ssl
+
+
+# OPTIONAL: Alternate cert source
+# This can be changed to accommodate manually installing a different cert from another source, other than LetsEncrypt.
+# If you are using LetsEncrypt, don't change these.
+# Local path for unifi-utils to store some cache data
+SSLCERT_LOCAL_DIR_CACHE=~/ssl/letsencrypt/cache/${CERTBOT_PRIMARY_DOMAIN}
+SSLCERT_REMOTE_DIR_CACHE=/tmp
+SSLCERT_CERT=${CERTBOT_LOCAL_DIR_CONFIG}/live/${CERTBOT_PRIMARY_DOMAIN}/cert.pem
+SSLCERT_FULLCHAIN=${CERTBOT_LOCAL_DIR_CONFIG}/live/${CERTBOT_PRIMARY_DOMAIN}/fullchain.pem
+SSLCERT_KEY=${CERTBOT_LOCAL_DIR_CONFIG}/live/${CERTBOT_PRIMARY_DOMAIN}/privkey.pem
+SSLCERT_FULLCHAIN_P12=${SSLCERT_LOCAL_DIR_CACHE}/fullchain.p12
+# If you are using another source for a cert, uncomment the lines below and point each to their respective paths
+# Local path for unifi-utils to store some cache data
+#SSLCERT_LOCAL_DIR_CACHE=
+#SSLCERT_REMOTE_DIR_CACHE=/tmp
+#SSLCERT_CERT=
+#SSLCERT_FULLCHAIN=
+#SSLCERT_KEY=
+# Set this to the location of your p12 cert, or where you want to generate one to (temporarily) if you don't already have one
+#SSLCERT_FULLCHAIN_P12=
 
 ###########################
 ####   END: CERTBOT    ####
 ###########################
+
+
 
 
 ###########################
@@ -44,59 +80,66 @@ CERTBOT_EXTERNAL_DIR_CONFIG=/etc/letsencrypt
 ###########################
 
 # Enter your controller information here
+# Run this? Set to false, and this will not execute.
 CERTBOT_RUN_CONTROLLER=false
-# This will let you run unifi-utils on the same machine, rather than remotely. Useful if hosting SDN on a server
-CONTROLLER_IS_CK=true
+# Set the target device type here (Use UI's SKU if not a special self host option)
+# Options as of today: SELFHOST, DOCKER, UC-CK, UCK-G2, UCK-G2-PLUS, UDM, UDM-Pro, UNVR, UNVR-Pro (UCK-G2, UDM, and UNVR-Pro not functional as of now)
+CONTROLLER_TARGET_DEVICE=UCK-G2-PLUS
+# Is the target running UniOS? Older controllers, such as UC-CK and UCK-G2 are most likely not. Set to false if so
+CONTROLLER_TARGET_IS_UNIOS=true
+# Running this on the same machine as the controller? Not recommended unless self hosted, as firmware upgrades will wipe this out.
 CONTROLLER_LOCAL=false
+# Domain pointing to controller
 CONTROLLER_HOST=unifi.example.com
+# Credentials to SSH into the controller. Necessary, unless CONTROLLER_LOCAL is set to true.
+# Please also make sure SSH access is enabled on the controller. Some are off by default
 CONTROLLER_USER=ubnt
 CONTROLLER_PASS=ubnt
-CONTROLLER_HAS_PROTECT=true
 
-# Uncomment following three lines for CloudKey (default)
-CONTROLLER_UNIFI_DIR=/var/lib/unifi
-CONTROLLER_JAVA_DIR=/usr/lib/unifi
-CONTROLLER_KEYSTORE=${CONTROLLER_JAVA_DIR}/data/keystore
+# May be used at some point, but don't do much right now.
+# If protect is enabled unifi-protect may be reloaded/restarted on new cert deployment
+CONTROLLER_RUNNING_SDN=true
+CONTROLLER_RUNNING_PROTECT=true
+CONTROLLER_RUNNING_ACCESS=false
+CONTROLLER_RUNNING_TALK=false
+CONTROLLER_RUNNING_LED=false
 
-# Uncomment following three lines for Fedora/RedHat/CentOS
-#CONTROLLER_UNIFI_DIR=/opt/UniFi
-#CONTROLLER_JAVA_DIR=${CONTROLLER_UNIFI_DIR}
-#CONTROLLER_KEYSTORE=${CONTROLLER_UNIFI_DIR}/data/keystore
 
-# Uncomment following three lines for Debian/Ubuntu
-#CONTROLLER_UNIFI_DIR=/var/lib/unifi
-#CONTROLLER_JAVA_DIR=/usr/lib/unifi
-#CONTROLLER_KEYSTORE=${CONTROLLER_UNIFI_DIR}/keystore
+# NOTE: ARRAYS ARE ACCEPTABLE HERE IF YOU NEED TO DEPLOY THE CERT OF THE SAME DESTINATION TYPE TO MULTIPLE LOCATIONS OF THE SAME CONTROLLER
+# To do this, wrap the value with parenthesis, and separate with spaces only
+# Dummy example: CONTROLLER_SSL_KEY=("/etc/ssl/private/ssl.key" "/home/ui/ssl/ssl.key")
+# To skip the section, just mark it false
+# You do not need to pass a single target as an array. It will process the same regardless
 
-# Configuration options you probably shouldn't change
-CONTROLLER_KEYSTORE_ALIAS=unifi
-CONTROLLER_KEYSTORE_PASSWORD=aircontrolenterprise
-CONTROLLER_SERVICE_UNIFI_NETWORK=unifi
-CONTROLLER_SERVICE_UNIFI_PROTECT=unifi-protect
+# SELFHOST CONFIG
+CONTROLLER_SELFHOST_SSL_KEYSTORE=false
+CONTROLLER_SELFHOST_SSL_KEY=false
+CONTROLLER_SELFHOST_SSL_CRT=false
+CONTROLLER_SELFHOST_SSL_PRE_DEPLOY_EXEC="systemctl stop unifi"
+CONTROLLER_SELFHOST_SSL_POST_DEPLOY_EXEC="systemctl start unifi"
+
+# SELFHOSTING ON DOCKER CONFIG
+# Edit volume location as necessary, keystore should match properly afterwards
+CONTROLLER_DOCKER_DOCKER_VOLUME_CONFIG=~/docker/unifi/config
+CONTROLLER_DOCKER_SSL_KEYSTORE=${CONTROLLER_DOCKER_VOLUME_CONFIG}/data/keystore
+CONTROLLER_DOCKER_SSL_KEY=false
+CONTROLLER_DOCKER_SSL_CRT=false
+CONTROLLER_DOCKER_SSL_PRE_DEPLOY_EXEC="docker stop unifi-controller"
+CONTROLLER_DOCKER_SSL_POST_DEPLOY_EXEC="docker start unifi-controller"
+
+# END: Specific directories for system/software
+
 
 ###########################
 ####  END: CONTROLLER  ####
 ###########################
 
 
-###########################
-####   BEGIN: RADIUS   ####
-###########################
 
-CERTBOT_RUN_RADIUS=false
-RADIUS_HOST=usg.example.com
-RADIUS_USER=ubnt
-# Password is not used at all. SSH keys are used instead
-RADIUS_SERVICE=freeradius
 
-# Uncomment following two lines for USG (default)
-RADIUS_KEY=/etc/ssl/private/ssl-cert-snakeoil.key
-RADIUS_CERT=/etc/ssl/certs/ssl-cert-snakeoil.pem
-RADIUS_PEM=/etc/lighttpd/server.pem
-
-###########################
-####    END: RADIUS    ####
-###########################
+# Change/delete this once your config is set up
+# This is a global stop, and nothing will run so long as it exists
+CONFIG_IS_DEFAULT=true
 
 
 # Script use only
