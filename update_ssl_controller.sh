@@ -184,6 +184,8 @@ else
         else
             echo "SSL key file does not exist on target."
             echo "Aborting install, since the local cache matches current key."
+            return
+            exit 0
         fi
     else
         echo "New key detected, installer will continue!"
