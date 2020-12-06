@@ -166,18 +166,24 @@ else
     echo "integrity passed!"
     # Did the keys change? If not, no sense in continuing...
     if [ "${sha512_privkey}" == "${sha512_last}" ]; then
-        # Did it change there? If no, no sense in continuing...
-        if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-            sha512_controller=$(openssl rsa -noout -modulus -in "/etc/ssl/private/cloudkey.key" | openssl sha512)
+        echo "NOTE: Local cache for last deployment matches current key."
+        if [ "${CONTROLLER_SSL_KEY}" != "false" ]; then
+            # Did it change there? If no, no sense in continuing...
+            if [ "${CONTROLLER_LOCAL}" == "true" ]; then
+                sha512_controller=$(openssl rsa -noout -modulus -in "${CONTROLLER_SSL_KEY}" | openssl sha512)
+            else
+                sha512_controller=$(sshpass -p "${CONTROLLER_PASS}" ssh -o "VerifyHostKeyDNS=yes" -o "LogLevel=error" ${CONTROLLER_USER}@${CONTROLLER_HOST} "openssl rsa -noout -modulus -in \"${CONTROLLER_SSL_KEY}\" | openssl sha512")
+            fi
+            if [ "${sha512_privkey}" != "${sha512_controller}" ]; then
+                echo "Key is not on controller, installer will continue!"
+            else
+                echo "Keys did not change, stopping!"
+                return
+                exit 0
+            fi
         else
-            sha512_controller=$(sshpass -p "${CONTROLLER_PASS}" ssh -o "VerifyHostKeyDNS=yes" -o "LogLevel=error" ${CONTROLLER_USER}@${CONTROLLER_HOST} "openssl rsa -noout -modulus -in \"/etc/ssl/private/cloudkey.key\" | openssl sha512")
-        fi
-        if [ "${sha512_privkey}" != "${sha512_controller}" ]; then
-            echo "Key is not on controller, installer will continue!"
-        else
-            echo "Keys did not change, stopping!"
-            return
-            exit 0
+            echo "SSL key file does not exist on target."
+            echo "Aborting install, since the local cache matches current key."
         fi
     else
         echo "New key detected, installer will continue!"
