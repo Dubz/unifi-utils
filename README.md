@@ -24,17 +24,20 @@ This includes SSH keys and the config file (which contains the password to your 
 We recommend setting the config file's permissions to 0400 (read only for the user running this).
 
 ### Requirements
-* certbot running for your domain (this does not run certbot, it copes the files needed)
+* certbot running for your domain (this does not run certbot, it copes the files needed) -OR- a valid SSL cert from another provider
 * openssh-client (verifying certificate integrity)
-* scp (copies certificate files to CloudKey)
+* java (only if your controller still uses a keystore)
+
+#### If not running locally:
+* scp (copies certificate files to Controller)
 * sshpass (used for password authentication into CloudKey, since FW upgrades may wipe SSH keys)
 
 ### INSTALLATION
 1. As always, create a backup of your Controller. I am not responsible if you mess it up.
 1. Copy the file "./config-default" to "./config"
 1. Edit the "./config" file to suit your setup
-1. Change the file's permissions to 0400
-1. Add a cron entry to run update_ssl.sh as often as you'd like (it only makes changes if needed, recommended 5 minutes after certbot runs)
+1. Change the file's permissions to 0400 (it may have your controller's hardware auth info in it...)
+1. Add a cron entry to run update_ssl.sh as often as you'd like (it only makes changes if needed, recommended 5+ minutes after certbot runs)
 
     Ex: `5 0,12 * * * cd path-to/unifi-utils && bash ./update_ssl.sh && cd ~`
 
