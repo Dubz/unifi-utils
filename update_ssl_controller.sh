@@ -267,7 +267,13 @@ if [ "${CONTROLLER_SSL_CRT[@]}" != "false" ]; then
 fi
 if [ "${CONTROLLER_SSL_KEYSTORE[@]}" != "false" ]; then
     # This is deployed to a temporary/remote cache, then used to install to the keystore(s)
-    copy_file "${SSLCERT_FULLCHAIN_P12}" "${SSLCERT_REMOTE_DIR_CACHE}/fullchain.p12"
+    if [ "${CONTROLLER_LOCAL}" != "true" ]; then
+        copy_file "${SSLCERT_FULLCHAIN_P12}" "${SSLCERT_REMOTE_DIR_CACHE}/fullchain.p12"
+    elif [ "${CONTROLLER_LOCAL}" == "true" ] && [ "${SSLCERT_FULLCHAIN_P12}" != "${SSLCERT_REMOTE_DIR_CACHE}/fullchain.p12" ]; then
+        copy_file "${SSLCERT_FULLCHAIN_P12}" "${SSLCERT_REMOTE_DIR_CACHE}/fullchain.p12"
+    else
+        # Do nothing
+    fi
 fi
 echo "done!"
 
@@ -285,7 +291,7 @@ echo -n "Importing SSL certificate into ${CONTROLLER_KEYSTORE_ALIAS} keystore...
 if [ "${CONTROLLER_SSL_KEYSTORE[@]}" != "false" ]; then
     for ks in "${CONTROLLER_SSL_KEYSTORE[@]}"
     do
-        keytool_import "${ks}" "${CONTROLLER_KEYSTORE_ALIAS}" "${CONTROLLER_KEYSTORE_PASSWORD}" "${SSLCERT_FULLCHAIN_P12}"
+        keytool_import "${ks}" "${CONTROLLER_KEYSTORE_ALIAS}" "${CONTROLLER_KEYSTORE_PASSWORD}" "${SSLCERT_REMOTE_DIR_CACHE}/fullchain.p12"
     done
 fi
 echo "done!"
