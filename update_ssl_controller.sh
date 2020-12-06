@@ -43,7 +43,7 @@ if [ -z "${DEFAULT_SSL_LOCATION+x}" ]; then
 fi
 
 # Load the necessary functions
-if ! [ typeset -f check_file_exist > /dev/null ]; then
+if [ ! typeset -f check_file_exist > /dev/null ]; then
     source func.sh
 fi
 
@@ -118,7 +118,7 @@ fi
 
 
 # Are the required cert files there?
-for f in $("${SSLCERT_CERT}" "${SSLCERT_FULLCHAIN}" "${SSLCERT_KEY}")
+for f in {"${SSLCERT_CERT}" "${SSLCERT_FULLCHAIN}" "${SSLCERT_KEY}"}
 do
     if [ ! -s "${f}" ]; then
         echo "Missing file: ${f} - aborting!"
