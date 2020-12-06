@@ -30,11 +30,11 @@ fi
 
 
 # $1 - command to execute on controller
-function send_exec() {
+function send_eval() {
     if [ "${CONTROLLER_LOCAL}" == "true" ]; then
-        ${1}
+        eval "${1}"
     else
-        sshpass -p "${CONTROLLER_PASS}" ssh -o "VerifyHostKeyDNS=yes" ${CONTROLLER_USER}@${CONTROLLER_HOST} ${1}
+        sshpass -p "${CONTROLLER_PASS}" ssh -o "VerifyHostKeyDNS=yes" ${CONTROLLER_USER}@${CONTROLLER_HOST} 'eval "'${1}'"'
     fi
 }
 
@@ -77,7 +77,7 @@ function backup_file() {
 # $3 str  - Keystore password
 # $4 str  - p12 cert location
 function keytool_import() {
-    send_exec \
+    send_eval \
         'keytool -importkeystore \
             -srckeystore "'${4}'" \
             -srcstoretype PKCS12 \
@@ -93,7 +93,7 @@ function keytool_import() {
 # $2 str  - Keystore alias
 # $3 str  - Keystore password
 function keytool_delete() {
-    send_exec 'keytool -delete -alias "'${2}'" -keystore "'${1}'" -deststorepass "'${3}'"'
+    send_eval 'keytool -delete -alias "'${2}'" -keystore "'${1}'" -deststorepass "'${3}'"'
 }
 
 
@@ -110,5 +110,5 @@ function copy_file() {
 
 # $1 str  - File to remove
 function remove_file() {
-    send_exec 'rm "'${1}'"'
+    send_eval 'rm "'${1}'"'
 }
