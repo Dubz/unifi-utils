@@ -24,6 +24,8 @@ CONTROLLER_SERVICE_UNIFI_LED=unifi-led
 declare -A DEFAULT_SSL_LOCATION
 
 # UC-CK
+declare -A DEFAULT_SSL_LOCATION["UC-CK"]
+declare -A DEFAULT_SSL_LOCATION["UC-CK"]["legacy"]
 DEFAULT_SSL_LOCATION["UC-CK"]["legacy"]["KEYSTORE"]="/etc/ssl/private/unifi.keystore.jks"
 DEFAULT_SSL_LOCATION["UC-CK"]["legacy"]["KEY"]="/etc/ssl/private/cloudkey.key"
 DEFAULT_SSL_LOCATION["UC-CK"]["legacy"]["CRT"]="/etc/ssl/private/cloudkey.crt"
@@ -32,6 +34,9 @@ DEFAULT_SSL_LOCATION["UC-CK"]["legacy"]["POST_DEPLOY_EXEC"]="service ${CONTROLLE
 
 
 # UCK-G2 (ASSUMED, NOT VERIFIED)
+declare -A DEFAULT_SSL_LOCATION["UCK-G2"]
+declare -A DEFAULT_SSL_LOCATION["UCK-G2"]["legacy"]
+declare -A DEFAULT_SSL_LOCATION["UCK-G2"]["UniOS"]
 DEFAULT_SSL_LOCATION["UCK-G2"]["legacy"]["KEYSTORE"]="/etc/ssl/private/unifi.keystore.jks"
 DEFAULT_SSL_LOCATION["UCK-G2"]["legacy"]["KEY"]="/etc/ssl/private/cloudkey.key"
 DEFAULT_SSL_LOCATION["UCK-G2"]["legacy"]["CRT"]="/etc/ssl/private/cloudkey.crt"
@@ -44,6 +49,9 @@ DEFAULT_SSL_LOCATION["UCK-G2"]["UniOS"]["PRE_DEPLOY_EXEC"]=""
 DEFAULT_SSL_LOCATION["UCK-G2"]["UniOS"]["POST_DEPLOY_EXEC"]=""
 
 # UCK-G2-PLUS
+declare -A DEFAULT_SSL_LOCATION["UCK-G2-PLUS"]
+declare -A DEFAULT_SSL_LOCATION["UCK-G2-PLUS"]["legacy"]
+declare -A DEFAULT_SSL_LOCATION["UCK-G2-PLUS"]["UniOS"]
 DEFAULT_SSL_LOCATION["UCK-G2-PLUS"]["legacy"]["KEYSTORE"]="/etc/ssl/private/unifi.keystore.jks"
 DEFAULT_SSL_LOCATION["UCK-G2-PLUS"]["legacy"]["KEY"]="/etc/ssl/private/cloudkey.key"
 DEFAULT_SSL_LOCATION["UCK-G2-PLUS"]["legacy"]["CRT"]="/etc/ssl/private/cloudkey.crt"
@@ -57,6 +65,8 @@ DEFAULT_SSL_LOCATION["UCK-G2-PLUS"]["UniOS"]["POST_DEPLOY_EXEC"]=""
 
 
 # UDM
+declare -A DEFAULT_SSL_LOCATION["UDM"]
+declare -A DEFAULT_SSL_LOCATION["UDM"]["UniOS"]
 # These more than likely won't have a legacy OS in production ever, and since we don't know the official original target path, leaving commented out
 #DEFAULT_SSL_LOCATION["UDM"]["legacy"]["KEYSTORE"]="/etc/ssl/private/unifi.keystore.jks"
 #DEFAULT_SSL_LOCATION["UDM"]["legacy"]["KEY"]="/etc/ssl/private/cloudkey.key"
@@ -70,6 +80,8 @@ DEFAULT_SSL_LOCATION["UDM"]["UniOS"]["PRE_DEPLOY_EXEC"]=""
 DEFAULT_SSL_LOCATION["UDM"]["UniOS"]["POST_DEPLOY_EXEC"]=""
 
 # UDM-Pro
+declare -A DEFAULT_SSL_LOCATION["UDM-Pro"]
+declare -A DEFAULT_SSL_LOCATION["UDM-Pro"]["UniOS"]
 # These more than likely won't have a legacy OS in production ever, and since we don't know the official original target path, leaving commented out
 #DEFAULT_SSL_LOCATION["UDM-Pro"]["legacy"]["KEYSTORE"]="/etc/ssl/private/unifi.keystore.jks"
 #DEFAULT_SSL_LOCATION["UDM-Pro"]["legacy"]["KEY"]="/etc/ssl/private/cloudkey.key"
@@ -84,6 +96,8 @@ DEFAULT_SSL_LOCATION["UDM-Pro"]["UniOS"]["POST_DEPLOY_EXEC"]=""
 
 
 # UNVR
+declare -A DEFAULT_SSL_LOCATION["UNVR"]
+declare -A DEFAULT_SSL_LOCATION["UNVR"]["UniOS"]
 # These more than likely won't have a legacy OS in production ever, and since we don't know the official original target path, leaving commented out
 #DEFAULT_SSL_LOCATION["UNVR"]["legacy"]["KEYSTORE"]="/etc/ssl/private/unifi.keystore.jks"
 #DEFAULT_SSL_LOCATION["UNVR"]["legacy"]["KEY"]="/etc/ssl/private/cloudkey.key"
@@ -97,6 +111,8 @@ DEFAULT_SSL_LOCATION["UNVR"]["UniOS"]["PRE_DEPLOY_EXEC"]=""
 DEFAULT_SSL_LOCATION["UNVR"]["UniOS"]["POST_DEPLOY_EXEC"]=""
 
 # UNVR-Pro (ASSUMED, NOT VERIFIED)
+declare -A DEFAULT_SSL_LOCATION["UNVR-Pro"]
+declare -A DEFAULT_SSL_LOCATION["UNVR-Pro"]["UniOS"]
 # These more than likely won't have a legacy OS in production ever, and since we don't know the official original target path, leaving commented out
 #DEFAULT_SSL_LOCATION["UNVR-Pro"]["legacy"]["KEYSTORE"]="/etc/ssl/private/unifi.keystore.jks"
 #DEFAULT_SSL_LOCATION["UNVR-Pro"]["legacy"]["KEY"]="/etc/ssl/private/cloudkey.key"
