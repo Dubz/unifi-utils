@@ -118,7 +118,7 @@ fi
 
 
 # Are the required cert files there?
-for f in {"${SSLCERT_CERT}" "${SSLCERT_FULLCHAIN}" "${SSLCERT_KEY}"}
+for f in "${SSLCERT_CERT}" "${SSLCERT_FULLCHAIN}" "${SSLCERT_KEY}"
 do
     if [ ! -s "${f}" ]; then
         echo "Missing file: ${f} - aborting!"
