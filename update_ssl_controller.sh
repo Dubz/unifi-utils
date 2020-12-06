@@ -213,7 +213,7 @@ fi
 # Pre-deployment command
 if [ "${CONTROLLER_SSL_PRE_DEPLOY_EXEC}" ]; then
     echo "Running pre-deployment command..."
-    send_eval ${CONTROLLER_SSL_PRE_DEPLOY_EXEC}
+    send_exec "${CONTROLLER_SSL_PRE_DEPLOY_EXEC}"
     echo "Pre-deployment command execution completed!"
 else
     echo "No pre-deployment command found, starting!"
@@ -296,7 +296,7 @@ echo "done!"
 # Post-deployment command
 if [ "${CONTROLLER_SSL_POST_DEPLOY_EXEC}" ]; then
     echo "Running post-deployment command..."
-    send_eval ${CONTROLLER_SSL_POST_DEPLOY_EXEC}
+    send_exec "${CONTROLLER_SSL_POST_DEPLOY_EXEC}"
     echo "Post-deployment command execution completed!"
 else
     echo "No post-deployment command found, finishing!"
@@ -304,7 +304,7 @@ fi
 
 
 echo -n "Cleaning up CloudKey..."
-send_eval "rm -f \"${SSLCERT_REMOTE_DIR_CACHE}/fullchain.p12\""
+send_exec "rm -f \"${SSLCERT_REMOTE_DIR_CACHE}/fullchain.p12\""
 echo "done!"
 
 
