@@ -43,7 +43,7 @@ if [ -z "${DEFAULT_SSL_LOCATION+x}" ]; then
 fi
 
 # Load the necessary functions
-if [ ! typeset -f check_file_exist > /dev/null ]; then
+if [ ! type check_file_exist &> /dev/null ]; then
     source func.sh
 fi
 
